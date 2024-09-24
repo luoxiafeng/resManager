@@ -2,17 +2,36 @@
 
 {% block content %}
 <h2>资源列表</h2>
-<div class="container">
-    {% for resource_type, resources in resources_by_type.items() %}
-        <h3>{{ resource_type }}</h3>
-        <ul class="list-group">
-            {% for resource in resources %}
-                <li class="list-group-item" style="background-color: {% if resource.is_busy %}#ffcccc{% else %}#ccffcc{% endif %};">
-                    <strong>{{ resource.resource_name }}</strong> - {{ resource.resource_address }} 
-                    （状态: {% if resource.is_busy %}忙碌{% else %}空闲{% endif %}）
-                </li>
-            {% endfor %}
-        </ul>
-    {% endfor %}
-</div>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>资源类型</th>
+            <th>资源名称</th>
+            <th>资源地址</th>
+            <th>状态</th>
+            <th>占用者</th>
+            <th>占用时间</th>
+            <th>占用时长</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for resource in resources %}
+        <tr>
+            <td>{{ resource.resource_type }}</td>
+            <td>{{ resource.resource_name }}</td>
+            <td>{{ resource.resource_address }}</td>
+            <td>
+                {% if resource.is_busy %}
+                <span style="background-color:red; color:white;">忙碌</span>
+                {% else %}
+                <span style="background-color:green; color:white;">空闲</span>
+                {% endif %}
+            </td>
+            <td>{{ resource.assigned_to or '无' }}</td>
+            <td>{{ resource.assigned_time or '无' }}</td>
+            <td>{{ resource.usage_duration or '无' }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
 {% endblock %}

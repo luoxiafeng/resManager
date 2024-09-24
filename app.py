@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from flask_migrate import Migrate
+from datetime import datetime
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key'
@@ -15,8 +16,8 @@ class Resource(db.Model):
     resource_name = db.Column(db.String(100), nullable=False)
     resource_address = db.Column(db.String(100), nullable=False)
     is_busy = db.Column(db.Boolean, default=False)
-    assigned_to = db.Column(db.String(100))
-    assigned_time = db.Column(db.DateTime)
+    assigned_to = db.Column(db.String(100), nullable=True)
+    assigned_time = db.Column(db.DateTime, nullable=True)
 
 # 资源排队模型
 class Queue(db.Model):
@@ -179,46 +180,43 @@ def release_resource(resource_id):
 # 新增队列路由，检查是否有资源空闲并分配资源
 @app.route('/queue_resource', methods=['POST'])
 def queue_resource():
-    # 获取排队中的第一个人
-    first_user_in_queue = Queue.query.filter_by(status='排队').first()
+    # 查询是否有空闲资源
+    free_resource = Resource.query.filter_by(is_busy=False).first()
 
-    if first_user_in_queue:
-        # 找到一个空闲的资源
-        free_resource = Resource.query.filter_by(is_busy=False).first()
+    if free_resource:
+        # 获取排队中第一个用户
+        first_user_in_queue = Queue.query.first()
 
-        if free_resource:
-            # 分配资源给排队中的第一个人
-            free_resource.assigned_to = first_user_in_queue.applicant_name  # 使用正确的字段名
+        if first_user_in_queue:
+            # 分配资源给排队中第一个用户
             free_resource.is_busy = True
-            free_resource.assigned_time = datetime.utcnow()
-
-            db.session.delete(first_user_in_queue)  # 将此人从排队中删除
+            free_resource.assigned_to = first_user_in_queue.applicant_name  # 记录资源占用者
+            free_resource.assigned_time = datetime.now()  # 记录资源占用时间
             db.session.commit()
-            flash(f'资源已分配给 {first_user_in_queue.applicant_name}', 'success')
+
+            # 从队列中移除这个用户
+            db.session.delete(first_user_in_queue)
+            db.session.commit()
+
+            flash(f"资源已分配给 {first_user_in_queue.applicant_name}", 'success')
         else:
-            flash('没有空闲的资源', 'warning')
+            flash("没有用户在排队", 'info')
     else:
-        flash('没有排队中的人', 'warning')
+        flash("没有空闲资源", 'warning')
 
     return redirect(url_for('apply_resources'))
-
-
 
 # 查看资源页面
 @app.route('/view_resources')
 def view_resources():
     resources = Resource.query.all()
-
-    # 按类型分组资源
-    resources_by_type = {}
     for resource in resources:
-        resource_type = resource.resource_type
-        if resource_type not in resources_by_type:
-            resources_by_type[resource_type] = []
-        resources_by_type[resource_type].append(resource)
-
-    # 渲染模板时传递 resources_by_type
-    return render_template('view_resources.html', resources_by_type=resources_by_type)
+        if resource.is_busy and resource.assigned_time:
+            # 计算占用时长
+            resource.usage_duration = datetime.now() - resource.assigned_time
+        else:
+            resource.usage_duration = None
+    return render_template('view_resources.html', resources=resources)
 
 
 # 使用报表页面
