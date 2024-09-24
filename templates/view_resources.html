@@ -1,0 +1,14 @@
+<!-- view_resources.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<h2>查看资源</h2>
+{% for resource_type, resources in resources_by_type.items() %}
+    <h3>{{ resource_type }}</h3>
+    <ul>
+        {% for resource in resources %}
+            <li>名称: {{ resource.resource_name }}, 地址: {{ resource.resource_address }}</li>
+        {% endfor %}
+    </ul>
+{% endfor %}
+{% endblock %}

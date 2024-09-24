@@ -14,6 +14,7 @@ class Resource(db.Model):
     resource_name = db.Column(db.String(100), nullable=False)
     resource_address = db.Column(db.String(100), nullable=False)
 
+
 # 首页
 @app.route('/')
 def index():
@@ -64,13 +65,19 @@ def apply_resources():
         return redirect(url_for('apply_resources'))
     return render_template('apply_resources.html')
 
-# 查看资源
+# 查看资源页面
 @app.route('/view_resources')
 def view_resources():
+    # 从数据库中按资源类型分类展示资源
+    resources_by_type = {}
     resources = Resource.query.all()
-    return render_template('view_resources.html', resources=resources)
-
-# app.py
+    
+    for resource in resources:
+        if resource.resource_type not in resources_by_type:
+            resources_by_type[resource.resource_type] = []
+        resources_by_type[resource.resource_type].append(resource)
+    
+    return render_template('view_resources.html', resources_by_type=resources_by_type)
 
 # 使用报表页面
 @app.route('/usage_report')
@@ -83,4 +90,6 @@ with app.app_context():
     db.create_all()
 
 if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()
     app.run(debug=True)
