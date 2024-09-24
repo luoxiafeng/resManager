@@ -1,0 +1,32 @@
+<!-- manage_resources.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<h2>管理资源</h2>
+<form id="manageResourceForm" method="POST">
+    <div class="mb-3">
+        <label for="resource_type" class="form-label">资源类型</label>
+        <select id="resource_type" name="resource_type" class="form-select">
+            <option value="FPGA">FPGA</option>
+            <option value="SOC">SOC</option>
+            <option value="CAMERA">CAMERA</option>
+            <option value="ROUTER">ROUTER</option>
+        </select>
+    </div>
+    <div class="mb-3">
+        <label for="resource_name" class="form-label">资源名称</label>
+        <input type="text" id="resource_name" name="resource_name" class="form-control" required>
+    </div>
+    <div class="mb-3">
+        <label for="resource_address" class="form-label">资源地址</label>
+        <input type="text" id="resource_address" name="resource_address" class="form-control" required>
+    </div>
+    <div class="mb-3">
+        <label for="admin_password" class="form-label">管理员密码</label>
+        <input type="password" id="admin_password" name="admin_password" class="form-control" required>
+    </div>
+    <button type="submit" name="action" value="add" class="btn btn-success">添加</button>
+    <button type="submit" name="action" value="delete" class="btn btn-danger">删除</button>
+</form>
+
+{% endblock %}
