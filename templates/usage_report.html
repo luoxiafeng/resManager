@@ -3,5 +3,46 @@
 
 {% block content %}
 <h2>使用报表</h2>
-<p>这里将显示资源的使用情况。</p>
+
+<!-- 日历选择器 -->
+<form id="dateForm" method="POST">
+    <div class="mb-3">
+        <label for="start_date" class="form-label">开始日期</label>
+        <input type="date" id="start_date" name="start_date" class="form-control" required>
+    </div>
+    <div class="mb-3">
+        <label for="end_date" class="form-label">结束日期</label>
+        <input type="date" id="end_date" name="end_date" class="form-control" required>
+    </div>
+    <button type="submit" class="btn btn-primary">生成报表</button>
+</form>
+
+<!-- 显示柱状图 -->
+<canvas id="usageChart" width="400" height="200"></canvas>
+
 {% endblock %}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const ctx = document.getElementById('usageChart').getContext('2d');
+    const usageChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: {{ user_labels|safe }}, // 用户名
+            datasets: [{
+                label: '总使用时长 (分钟)',
+                data: {{ usage_data|safe }}, // 对应的总使用时长
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+</script>

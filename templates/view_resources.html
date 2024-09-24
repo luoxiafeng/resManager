@@ -27,9 +27,9 @@
                 <span style="background-color:green; color:white;">空闲</span>
                 {% endif %}
             </td>
-            <td>{{ resource.assigned_to or '无' }}</td>
-            <td>{{ resource.assigned_time or '无' }}</td>
-            <td>{{ resource.usage_duration or '无' }}</td>
+            <td>{{ resource.assigned_to   }}</td>
+            <td>{{ resource.assigned_time  }}</td>
+            <td>{{ resource.occupied_duration  }}</td>
         </tr>
         {% endfor %}
     </tbody>
