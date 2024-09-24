@@ -1,14 +1,18 @@
-<!-- view_resources.html -->
 {% extends "base.html" %}
 
 {% block content %}
-<h2>查看资源</h2>
-{% for resource_type, resources in resources_by_type.items() %}
-    <h3>{{ resource_type }}</h3>
-    <ul>
-        {% for resource in resources %}
-            <li>名称: {{ resource.resource_name }}, 地址: {{ resource.resource_address }}</li>
-        {% endfor %}
-    </ul>
-{% endfor %}
+<h2>资源列表</h2>
+<div class="container">
+    {% for resource_type, resources in resources_by_type.items() %}
+        <h3>{{ resource_type }}</h3>
+        <ul class="list-group">
+            {% for resource in resources %}
+                <li class="list-group-item" style="background-color: {% if resource.is_busy %}#ffcccc{% else %}#ccffcc{% endif %};">
+                    <strong>{{ resource.resource_name }}</strong> - {{ resource.resource_address }} 
+                    （状态: {% if resource.is_busy %}忙碌{% else %}空闲{% endif %}）
+                </li>
+            {% endfor %}
+        </ul>
+    {% endfor %}
+</div>
 {% endblock %}

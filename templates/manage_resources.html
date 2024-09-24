@@ -22,11 +22,11 @@
         <input type="text" id="resource_address" name="resource_address" class="form-control" required>
     </div>
     <div class="mb-3">
-        <label for="admin_password" class="form-label">管理员密码</label>
-        <input type="password" id="admin_password" name="admin_password" class="form-control" required>
+        <label for="admin_password" class="form-label">管理员密码（添加/删除时）</label>
+        <input type="password" id="admin_password" name="admin_password" class="form-control">
     </div>
-    <button type="submit" name="action" value="add" class="btn btn-success">添加</button>
-    <button type="submit" name="action" value="delete" class="btn btn-danger">删除</button>
+    <button type="submit" name="action" value="add" class="btn btn-success">添加资源</button>
+    <button type="submit" name="action" value="delete" class="btn btn-danger">删除资源</button>
+    <button type="submit" name="action" value="release" class="btn btn-warning">释放资源</button>
 </form>
-
 {% endblock %}

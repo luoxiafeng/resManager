@@ -1,0 +1,104 @@
+<!-- apply_resources.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<h2>申请资源</h2>
+
+<!-- 排队按钮 -->
+<form method="POST" action="{{ url_for('queue_resource') }}">
+    <button type="submit" class="btn btn-primary mt-3">排队</button>
+</form>
+
+<!-- 展示当前排队信息 -->
+<h3>当前排队信息</h3>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>申请人姓名</th>
+            <th>资源类型</th>
+            <th>FPGA 名称</th>
+            <th>FPGA 地址</th>
+            <th>申请时间</th>
+            <th>状态</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for queue in queued_users %}
+        <tr>
+            <td>{{ queue.applicant_name }}</td>
+            <td>{{ queue.resource_type }}</td>
+            <td>{{ queue.fpga_name }}</td>
+            <td>{{ queue.fpga_address }}</td>
+            <td>{{ queue.apply_time }}</td>
+            <td>{{ queue.status }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<!-- 申请资源表单 -->
+<h3>申请新资源</h3>
+<form id="applyResourceForm" method="POST">
+    <div class="mb-3">
+        <label for="resource_type" class="form-label">资源类型</label>
+        <select id="resource_type" name="resource_type" class="form-select" onchange="showFpgaFields()">
+            <option value="FPGA" selected>FPGA</option>
+            <option value="SOC">SOC</option>
+            <option value="CAMERA">CAMERA</option>
+            <option value="ROUTER">ROUTER</option>
+        </select>
+    </div>
+
+    <!-- FPGA 名称和地址的下拉列表 -->
+    <div class="mb-3" id="fpgaFields">
+        <label for="fpga_name" class="form-label">FPGA 名称</label>
+        <select id="fpga_name" name="fpga_name" class="form-select">
+            {% for resource in fpga_resources %}
+            <option value="{{ resource.resource_name }}">{{ resource.resource_name }}</option>
+            {% endfor %}
+        </select>
+
+        <label for="fpga_address" class="form-label">FPGA 地址</label>
+        <select id="fpga_address" name="fpga_address" class="form-select">
+            {% for resource in fpga_resources %}
+            <option value="{{ resource.resource_address }}">{{ resource.resource_address }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="mb-3">
+        <label for="usage_time" class="form-label">使用时间</label>
+        <select id="usage_time" name="usage_time" class="form-select">
+            <option value="15">15 分钟</option>
+            <option value="30">30 分钟</option>
+            <option value="45">45 分钟</option>
+            <option value="360">6 小时</option>
+        </select>
+    </div>
+
+    <div class="mb-3">
+        <label for="applicant_name" class="form-label">申请人姓名</label>
+        <input type="text" id="applicant_name" name="applicant_name" class="form-control" required>
+    </div>
+
+    <button type="submit" class="btn btn-primary">提交申请</button>
+</form>
+
+<script>
+    function showFpgaFields() {
+        var resourceType = document.getElementById('resource_type').value;
+        var fpgaFields = document.getElementById('fpgaFields');
+        if (resourceType === 'FPGA') {
+            fpgaFields.style.display = 'block';
+        } else {
+            fpgaFields.style.display = 'none';
+        }
+    }
+
+    // 页面加载时默认显示 FPGA 名称和地址的下拉列表
+    document.addEventListener('DOMContentLoaded', function() {
+        showFpgaFields();
+    });
+</script>
+
+{% endblock %}
