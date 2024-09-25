@@ -18,6 +18,7 @@ class Resource(db.Model):
     is_busy = db.Column(db.Boolean, default=False)  # 资源是否被占用
     assigned_to = db.Column(db.String(100), nullable=True)  # 当前占用资源的用户
     assigned_time = db.Column(db.DateTime, nullable=True)  # 资源分配时间
+    usage_duration = db.Column(db.Integer, nullable=True)  # 使用时长（分钟）
 
 # 资源排队模型
 class Queue(db.Model):
@@ -148,7 +149,8 @@ def apply_resources():
             # 分配资源
             resource.is_busy = True
             resource.assigned_to = applicant_name
-            resource.assigned_time = datetime.utcnow()
+            resource.assigned_time = datetime.now()
+            resource.usage_duration = usage_time
             db.session.commit()
             flash(f'{resource_type} 资源已分配给 {applicant_name}！', 'success')
         else:
@@ -245,7 +247,8 @@ def view_resources():
             'resource_address': resource.resource_address,
             'is_busy': resource.is_busy,
             'assigned_to': resource.assigned_to,
-            'assigned_time': resource.assigned_time
+            'assigned_time': resource.assigned_time,
+            'usage_duration': resource.usage_duration
         }
 
         # 如果资源被占用，计算占用时长
@@ -316,4 +319,4 @@ with app.app_context():
     db.create_all()
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)

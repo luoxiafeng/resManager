@@ -12,6 +12,7 @@
             <th>占用者</th>
             <th>占用时间</th>
             <th>占用时长</th>
+            <th>申请时长</th>
         </tr>
     </thead>
     <tbody>
@@ -30,6 +31,7 @@
             <td>{{ resource.assigned_to   }}</td>
             <td>{{ resource.assigned_time  }}</td>
             <td>{{ resource.occupied_duration  }}</td>
+            <td>{{ resource.usage_duration  }}</td>
         </tr>
         {% endfor %}
     </tbody>
