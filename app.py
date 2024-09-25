@@ -5,6 +5,7 @@ from flask_migrate import Migrate
 from datetime import datetime
 from threading import Thread
 from datetime import datetime, timedelta
+from sqlalchemy import UniqueConstraint
 import time
 
 app = Flask(__name__)
@@ -22,7 +23,7 @@ class Resource(db.Model):
     assigned_to = db.Column(db.String(100), nullable=True)  # 当前占用资源的用户
     assigned_time = db.Column(db.DateTime, nullable=True)  # 资源分配时间
     usage_duration = db.Column(db.Integer, nullable=True)  # 使用时长（分钟）
-
+    __table_args__ = (UniqueConstraint('resource_name', 'resource_address', name='uix_resource_name_address'),)
 # 资源排队模型
 class Queue(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -30,7 +31,8 @@ class Queue(db.Model):
     resource_type = db.Column(db.String(50), nullable=False)
     fpga_name = db.Column(db.String(100), nullable=True)  # 如果是FPGA
     fpga_address = db.Column(db.String(100), nullable=True)
-    apply_time = db.Column(db.DateTime, default=datetime.utcnow)
+    apply_time = db.Column(db.DateTime, default=datetime.now)
+    usage_duration = db.Column(db.Integer, nullable=True)  # 使用时长（分钟）
     status = db.Column(db.String(50), nullable=False)
 
 # 首页
@@ -59,6 +61,7 @@ def manage_resources():
                     resource.is_busy = False
                     resource.assigned_to = None
                     resource.assigned_time = None
+                    resource.usage_duration = None
                     db.session.commit()
                     flash(f'资源 {resource_name} 成功释放！', 'success')
                 else:
@@ -80,9 +83,13 @@ def manage_resources():
                 resource_name=resource_name,
                 resource_address=resource_address
             )
-            db.session.add(new_resource)
-            db.session.commit()
-            flash('资源添加成功！', 'success')
+            try:
+                db.session.add(new_resource)
+                db.session.commit()
+                flash('资源添加成功！', 'success')
+            except:
+                db.session.rollback()
+                flash('error！', 'warning')
 
         elif action == 'delete':
             resource = Resource.query.filter_by(resource_name=resource_name).first()
@@ -129,8 +136,8 @@ def apply_resources():
             fpga_name = request.form['fpga_name']
             fpga_address = request.form['fpga_address']
             resource = Resource.query.filter_by(resource_name=fpga_name, resource_address=fpga_address).first()
-        else:
-            resource = Resource.query.filter_by(resource_type=resource_type).first()
+        #else:
+            #resource = Resource.query.filter_by(resource_type=resource_type).first()
         # 先检查资源是否存在
         existing_resource = Resource.query.filter_by(resource_type=resource_type,
                                                      resource_name=fpga_name,
@@ -163,6 +170,7 @@ def apply_resources():
                 resource_type=resource_type,
                 fpga_name=fpga_name,
                 fpga_address=fpga_address,
+                usage_duration=usage_time,
                 status='排队'
             )
             db.session.add(new_queue)
@@ -206,31 +214,33 @@ def release_resource(resource_id):
 # 新增队列路由，检查是否有资源空闲并分配资源
 @app.route('/queue_resource', methods=['POST'])
 def queue_resource():
-    # 查询是否有空闲资源
-    free_resource = Resource.query.filter_by(is_busy=False).first()
+    # 获取所有排队中的用户
+    all_users_in_queue = Queue.query.all()
+    
+    if all_users_in_queue:
+        for user_in_queue in all_users_in_queue:
+            # 查找该用户申请的空闲资源
+            free_resource = Resource.query.filter_by(resource_name=user_in_queue.fpga_name, resource_address=user_in_queue.fpga_address, is_busy=False).first()
 
-    if free_resource:
-        # 获取排队中第一个用户
-        first_user_in_queue = Queue.query.first()
+            if free_resource:
+                # 分配资源给该排队用户
+                free_resource.is_busy = True
+                free_resource.assigned_to = user_in_queue.applicant_name  # 记录资源占用者
+                free_resource.assigned_time = datetime.now()  # 记录资源占用时间
+                db.session.commit()
 
-        if first_user_in_queue:
-            # 分配资源给排队中第一个用户
-            free_resource.is_busy = True
-            free_resource.assigned_to = first_user_in_queue.applicant_name  # 记录资源占用者
-            free_resource.assigned_time = datetime.now()  # 记录资源占用时间
-            db.session.commit()
+                # 从队列中移除该用户
+                db.session.delete(user_in_queue)
+                db.session.commit()
 
-            # 从队列中移除这个用户
-            db.session.delete(first_user_in_queue)
-            db.session.commit()
-
-            flash(f"资源已分配给 {first_user_in_queue.applicant_name}", 'success')
-        else:
-            flash("没有用户在排队", 'info')
+                flash(f"资源已分配给 {user_in_queue.applicant_name}", 'success')
+            else:
+                flash(f"{user_in_queue.applicant_name} 请求的资源 ({user_in_queue.fpga_name}, {user_in_queue.fpga_address}) 暂时没有空闲。", 'info')
     else:
-        flash("没有空闲资源", 'warning')
+        flash("没有用户在排队", 'warning')
 
     return redirect(url_for('apply_resources'))
+
 
 # 查看资源页面
 from datetime import datetime
