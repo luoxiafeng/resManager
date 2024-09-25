@@ -3,6 +3,9 @@ from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from flask_migrate import Migrate
 from datetime import datetime
+from threading import Thread
+from datetime import datetime, timedelta
+import time
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key'
@@ -314,9 +317,43 @@ def assign_next_resource():
             db.session.delete(next_in_queue)  # 从队列中删除
             db.session.commit()
 
-# 初始化数据库
-with app.app_context():
-    db.create_all()
+# 资源释放的线程
+def release_resources():
+    with app.app_context():
+        while True:
+            # 查询所有被占用的资源
+            busy_resources = Resource.query.filter_by(is_busy=True).all()
+            for resource in busy_resources:
+                if resource.assigned_time and resource.usage_duration:
+                    # 从数据库中获取占用时长（已分配时间）
+                    assigned_time = resource.assigned_time
+                    current_time = datetime.now()
+
+                    # 计算占用时长与申请时长的差值
+                    usage_duration = timedelta(minutes=resource.usage_duration)
+                    time_difference = current_time - assigned_time
+
+                    # 如果占用时间超过申请的使用时长，则释放资源
+                    if time_difference >= usage_duration:
+                        resource.is_busy = False
+                        resource.assigned_to = None
+                        resource.assigned_time = None
+                        resource.usage_duration = None
+                        db.session.commit()
+                        print(f"Resource {resource.resource_name} has been released due to timeout.")
+            # 每隔60秒检查一次
+            time.sleep(60)
+
+# 在应用启动时启动该线程
+def start_resource_monitor():
+    resource_thread = Thread(target=release_resources)
+    resource_thread.daemon = True  # 让线程随主程序一起退出
+    resource_thread.start()
+
 
 if __name__ == '__main__':
+    # 初始化数据库
+    with app.app_context():
+        db.create_all()
+    start_resource_monitor()
     app.run(host='0.0.0.0', port=5000, debug=True)
