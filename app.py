@@ -109,7 +109,8 @@ def manage_resources():
 @app.route('/apply_resources', methods=['GET', 'POST'])
 def apply_resources():
     if request.method == 'POST':
-        if 'queue' in request.form:  # 当点击排队按钮时执行
+        #if 'queue' in request.form:  # 当点击排队按钮时执行
+        if False:  # 当点击排队按钮时执行
             # 查询第一个排队的用户并检查资源是否空闲
             first_in_queue = Queue.query.first()
             if first_in_queue:
@@ -154,28 +155,18 @@ def apply_resources():
         if existing_queue:
             flash('已经在排队同类资源，不要重复排队', 'danger')
             return redirect(url_for('apply_resources'))
-        
-        if resource and not resource.is_busy:
-            # 分配资源
-            resource.is_busy = True
-            resource.assigned_to = applicant_name
-            resource.assigned_time = datetime.now()
-            resource.usage_duration = usage_time
-            db.session.commit()
-            flash(f'{resource_type} 资源已分配给 {applicant_name}！', 'success')
-        else:
-            # 创建新的排队记录
-            new_queue = Queue(
-                applicant_name=applicant_name,
-                resource_type=resource_type,
-                fpga_name=fpga_name,
-                fpga_address=fpga_address,
-                usage_duration=usage_time,
-                status='排队'
-            )
-            db.session.add(new_queue)
-            db.session.commit()
-            flash(f'{resource_type} 资源正忙，{applicant_name} 已进入排队。', 'warning')
+        # 创建新的排队记录
+        new_queue = Queue(
+            applicant_name=applicant_name,
+            resource_type=resource_type,
+            fpga_name=fpga_name,
+            fpga_address=fpga_address,
+            usage_duration=usage_time,
+            status='排队'
+        )
+        db.session.add(new_queue)
+        db.session.commit()
+        flash(f'{resource_type} 资源正忙，{applicant_name} 已进入排队。', 'warning')
 
         return redirect(url_for('apply_resources'))
 
