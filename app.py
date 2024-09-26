@@ -6,6 +6,7 @@ from datetime import datetime
 from threading import Thread
 from datetime import datetime, timedelta
 from sqlalchemy import UniqueConstraint
+from flask import jsonify
 import time
 
 app = Flask(__name__)
@@ -109,25 +110,6 @@ def manage_resources():
 @app.route('/apply_resources', methods=['GET', 'POST'])
 def apply_resources():
     if request.method == 'POST':
-        #if 'queue' in request.form:  # 当点击排队按钮时执行
-        if False:  # 当点击排队按钮时执行
-            # 查询第一个排队的用户并检查资源是否空闲
-            first_in_queue = Queue.query.first()
-            if first_in_queue:
-                # 检查是否有空闲资源
-                resource = Resource.query.filter_by(resource_type=first_in_queue.resource_type, is_busy=False).first()
-                if resource:
-                    # 分配资源给排队中的用户
-                    resource.is_busy = True
-                    resource.assigned_to = first_in_queue.applicant_name
-                    resource.assigned_time = datetime.utcnow()
-                    db.session.delete(first_in_queue)  # 删除该排队记录
-                    db.session.commit()
-                    flash(f'{resource.resource_type} 资源已分配给 {first_in_queue.applicant_name}！', 'success')
-                else:
-                    flash('当前无空闲资源。', 'warning')
-            return redirect(url_for('apply_resources'))
-
         # 处理申请资源逻辑
         resource_type = request.form['resource_type']
         applicant_name = request.form['applicant_name']
@@ -137,13 +119,10 @@ def apply_resources():
             fpga_name = request.form['fpga_name']
             fpga_address = request.form['fpga_address']
             resource = Resource.query.filter_by(resource_name=fpga_name, resource_address=fpga_address).first()
-        #else:
-            #resource = Resource.query.filter_by(resource_type=resource_type).first()
-        # 先检查资源是否存在
+            
         existing_resource = Resource.query.filter_by(resource_type=resource_type,
                                                      resource_name=fpga_name,
                                                      resource_address=fpga_address).first()
-
         if not existing_resource:
             flash(f'资源不存在：{resource_type} {fpga_name} {fpga_address}', 'danger')
             return redirect(url_for('apply_resources'))
@@ -193,7 +172,7 @@ def release_resource(resource_id):
         if next_in_queue:
             resource.is_busy = True
             resource.assigned_to = next_in_queue.applicant_name
-            resource.assigned_time = datetime.utcnow()
+            resource.assigned_time = datetime.now()
             db.session.delete(next_in_queue)  # 删除该排队记录
             db.session.commit()
             flash(f'{resource.resource_type} 资源已分配给 {next_in_queue.applicant_name}！', 'success')
@@ -218,6 +197,7 @@ def queue_resource():
                 free_resource.is_busy = True
                 free_resource.assigned_to = user_in_queue.applicant_name  # 记录资源占用者
                 free_resource.assigned_time = datetime.now()  # 记录资源占用时间
+                free_resource.usage_duration = user_in_queue.usage_duration
                 db.session.commit()
 
                 # 从队列中移除该用户
@@ -232,9 +212,26 @@ def queue_resource():
 
     return redirect(url_for('apply_resources'))
 
+@app.route('/delete_queue', methods=['POST'])
+def delete_queue():
+    data = request.get_json()  # 从 JSON 请求体中获取数据
+    applicant_name = data.get('applicant_name')
+    fpga_name = data.get('fpga_name')
+    fpga_address = data.get('fpga_address')
 
-# 查看资源页面
-from datetime import datetime
+    if not applicant_name or not fpga_name or not fpga_address:
+        return jsonify({'success': False, 'message': '缺少必要的参数'}), 400
+
+    # 根据申请人、FPGA名称和地址来查找队列记录
+    queue_entry = Queue.query.filter_by(applicant_name=applicant_name, fpga_name=fpga_name, fpga_address=fpga_address).first()
+
+    if queue_entry:
+        db.session.delete(queue_entry)
+        db.session.commit()
+        return jsonify({'success': True})
+    else:
+        return jsonify({'success': False, 'message': '未找到该排队记录'})
+
 
 # 资源查看页面，显示资源的状态以及占用者的信息
 @app.route('/view_resources')
@@ -314,7 +311,7 @@ def assign_next_resource():
         if resource:
             resource.is_busy = True
             resource.assigned_to = next_in_queue.applicant_name
-            resource.assigned_time = datetime.utcnow()
+            resource.assigned_time = datetime.now()
             db.session.delete(next_in_queue)  # 从队列中删除
             db.session.commit()
 

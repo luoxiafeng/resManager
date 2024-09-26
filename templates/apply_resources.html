@@ -3,6 +3,7 @@
 {% block content %} 
 
 <!-- 展示当前排队信息 -->
+ 
 <h3>当前排队信息
     <!-- 排队按钮 -->
     <form method="POST" action="{{ url_for('queue_resource') }}" id="queueForm">
@@ -18,6 +19,7 @@
             <th>FPGA 地址</th>
             <th>申请时间</th>
             <th>状态</th>
+            <th>操作</th> <!-- 增加操作列 -->
         </tr>
     </thead>
     <tbody>
@@ -29,6 +31,10 @@
             <td>{{ queue.fpga_address }}</td>
             <td>{{ queue.apply_time }}</td>
             <td>{{ queue.status }}</td>
+            <td>
+                <!-- 删除按钮 -->
+                <button class="btn btn-danger" onclick="confirmDelete('{{ queue.applicant_name }}', '{{ queue.fpga_name }}', '{{ queue.fpga_address }}')">删除</button>
+            </td>
         </tr>
         {% endfor %}
     </tbody>
@@ -69,6 +75,7 @@
     <div class="mb-3">
         <label for="usage_time" class="form-label">使用时间</label>
         <select id="usage_time" name="usage_time" class="form-select">
+            <option value="1">1 分钟</option>
             <option value="15">15 分钟</option>
             <option value="30">30 分钟</option>
             <option value="45">45 分钟</option>
@@ -104,18 +111,37 @@
         showFpgaFields();
     });
 
-    // 提交申请时先触发排队
-    function submitApplication(event) {
-        // 先阻止默认的提交行为
-        event.preventDefault();
-
-        // 触发“排队”按钮的点击事件
-        document.getElementById('queueButton').click();
-
-        // 延时 1 秒执行申请表单提交
-        setTimeout(function() {
-            document.getElementById('applyResourceForm').submit();
-        }, 1000);  // 延时 1 秒钟
+    // 删除操作，输入密码验证
+    function confirmDelete(applicantName, fpgaName, fpgaAddress) {
+        var password = prompt("请输入密码进行删除操作：");
+        if (password === 'intchains666') {
+            // 如果密码正确，发送POST请求删除指定的队列
+            fetch('{{ url_for("delete_queue") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    applicant_name: applicantName,
+                    fpga_name: fpgaName,
+                    fpga_address: fpgaAddress
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert("删除成功！");
+                    location.reload(); // 刷新页面以更新排队信息
+                } else {
+                    alert(data.message); // 显示后端返回的错误信息
+                }
+            })
+            .catch(error => {
+                console.error("Error:", error);
+            });
+        } else {
+            alert("密码错误，无法删除。");
+        }
     }
 </script>
 
